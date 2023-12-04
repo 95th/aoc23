@@ -1,23 +1,41 @@
+use std::collections::HashMap;
+
 fn main() {
     let input = include_str!("../input.txt");
-    let sum = part_1(input);
-    println!("Part 1: {}", sum);
+    let (sum, gear_sum) = solve(input);
+    println!("Part 1: {sum}");
+    println!("Part 2: {gear_sum}");
 }
 
-fn part_1(input: &str) -> usize {
+fn solve(input: &str) -> (usize, usize) {
     let lines: Vec<&str> = input.lines().collect();
     let mut sum = 0;
+    let mut gear_map = HashMap::new();
     for i in 0..lines.len() {
-        sum += find_part_number_sum(&lines, i);
+        sum += find_part_number_sum(&lines, i, &mut gear_map);
     }
-    sum
+    let mut gear_sum = 0;
+    for (_, numbers) in gear_map {
+        if numbers.len() == 2 {
+            gear_sum += numbers[0] * numbers[1];
+        }
+    }
+    (sum, gear_sum)
 }
 
-fn find_part_number_sum(lines: &[&str], index: usize) -> usize {
-    let line = lines[index];
-    let prev_line = if index > 0 { lines[index - 1] } else { "" };
-    let next_line = if index < lines.len() - 1 {
-        lines[index + 1]
+fn find_part_number_sum(
+    lines: &[&str],
+    line_index: usize,
+    gear_map: &mut HashMap<(usize, usize), Vec<usize>>,
+) -> usize {
+    let line = lines[line_index];
+    let prev_line = if line_index > 0 {
+        lines[line_index - 1]
+    } else {
+        ""
+    };
+    let next_line = if line_index < lines.len() - 1 {
+        lines[line_index + 1]
     } else {
         ""
     };
@@ -33,47 +51,91 @@ fn find_part_number_sum(lines: &[&str], index: usize) -> usize {
                 in_progress = true;
             }
         } else if in_progress {
-            if is_part_number(line, prev_line, next_line, start_index, i) {
-                sum += line[start_index..i].parse::<usize>().unwrap();
+            let value = line[start_index..i].parse::<usize>().unwrap();
+            if is_part_number(
+                line,
+                line_index,
+                prev_line,
+                next_line,
+                start_index,
+                i,
+                value,
+                gear_map,
+            ) {
+                sum += value;
             }
             in_progress = false;
         }
     }
 
     if in_progress {
-        if is_part_number(line, prev_line, next_line, start_index, line.len()) {
-            sum += line[start_index..line.len()].parse::<usize>().unwrap();
+        let value = line[start_index..].parse::<usize>().unwrap();
+        if is_part_number(
+            line,
+            line_index,
+            prev_line,
+            next_line,
+            start_index,
+            line.len(),
+            value,
+            gear_map,
+        ) {
+            sum += value;
         }
     }
 
     sum
 }
 
-fn is_symbol(line: &str, i: usize) -> bool {
-    let c = line.as_bytes().get(i).copied().unwrap_or(b'.');
+fn is_symbol(
+    line: &str,
+    line_index: usize,
+    char_index: usize,
+    value: usize,
+    gear_map: &mut HashMap<(usize, usize), Vec<usize>>,
+) -> bool {
+    let c = line.as_bytes().get(char_index).copied().unwrap_or(b'.');
+    if c == b'*' {
+        gear_map
+            .entry((line_index, char_index))
+            .or_insert_with(Vec::new)
+            .push(value);
+    }
     !c.is_ascii_digit() && c != b'.'
 }
 
 fn is_part_number(
     line: &str,
+    line_index: usize,
     prev_line: &str,
     next_line: &str,
     start_index: usize,
     end_index: usize,
+    value: usize,
+    gear_map: &mut HashMap<(usize, usize), Vec<usize>>,
 ) -> bool {
     let start_index = start_index.saturating_sub(1);
 
-    if is_symbol(line, start_index) || is_symbol(line, end_index) {
-        return true;
+    let mut matching = false;
+
+    if is_symbol(line, line_index, start_index, value, gear_map) {
+        matching = true;
+    }
+
+    if is_symbol(line, line_index, end_index, value, gear_map) {
+        matching = true;
     }
 
     for i in start_index..=end_index {
-        if is_symbol(prev_line, i) || is_symbol(next_line, i) {
-            return true;
+        if line_index > 0 && is_symbol(prev_line, line_index - 1, i, value, gear_map) {
+            matching = true;
+        }
+        if is_symbol(next_line, line_index + 1, i, value, gear_map) {
+            matching = true;
         }
     }
 
-    false
+    matching
 }
 
 #[cfg(test)]
@@ -92,7 +154,7 @@ mod tests {
 ......755.
 ...$.*....
 .664.598.."#;
-        let sum = super::part_1(text);
+        let sum = super::solve(text);
         assert_eq!(sum, 4361);
     }
 
@@ -102,7 +164,7 @@ mod tests {
 467..114..
 ...@......
 ......633."#;
-        let sum = super::part_1(text);
+        let sum = super::solve(text);
         assert_eq!(sum, 467);
     }
 }
