@@ -7,7 +7,14 @@ fn main() {
             sum += game.id;
         }
     }
-    println!("sum: {sum}");
+    println!("Part1: sum = {sum}");
+
+    let mut sum = 0;
+    for game in input.lines() {
+        let game = Game::parse(game).unwrap();
+        sum += game.power();
+    }
+    println!("Part2: sum = {sum}");
 }
 
 struct Game<'a> {
@@ -39,6 +46,22 @@ impl Game<'_> {
                 Some(Draw { color, count })
             })
         })
+    }
+
+    fn power(&self) -> usize {
+        let mut min_red = 0;
+        let mut min_green = 0;
+        let mut min_blue = 0;
+
+        for draw in self.draws() {
+            match draw.color {
+                Color::Red => min_red = min_red.max(draw.count),
+                Color::Green => min_green = min_green.max(draw.count),
+                Color::Blue => min_blue = min_blue.max(draw.count),
+            }
+        }
+
+        min_red as usize * min_green as usize * min_blue as usize
     }
 }
 
