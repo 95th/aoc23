@@ -1,13 +1,13 @@
 fn main() {
     let input = include_str!("../input.txt");
-    let output = day_1(input);
+    let output = part_1(input);
     println!("output: {}", output);
 
-    let output = day_2(input);
+    let output = part_2(input);
     println!("output: {}", output);
 }
 
-fn day_1(input: &str) -> usize {
+fn part_1(input: &str) -> usize {
     let mut lines = input.lines();
     let seeds = get_seeds(lines.next().unwrap());
 
@@ -43,7 +43,7 @@ fn day_1(input: &str) -> usize {
     min_location
 }
 
-fn day_2(input: &str) -> usize {
+fn part_2(input: &str) -> usize {
     let mut lines = input.lines();
     let seeds = get_seeds(lines.next().unwrap());
 
@@ -183,14 +183,14 @@ humidity-to-location map:
 56 93 4"#;
 
     #[test]
-    fn day1_basic() {
-        let output = day_1(TEST_INPUT);
+    fn part1_basic() {
+        let output = part_1(TEST_INPUT);
         assert_eq!(output, 35);
     }
 
     #[test]
-    fn day2_basic() {
-        let output = day_2(TEST_INPUT);
+    fn part2_basic() {
+        let output = part_2(TEST_INPUT);
         assert_eq!(output, 46);
     }
 }
