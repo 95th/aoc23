@@ -4,35 +4,32 @@ fn main() {
     let input = include_str!("../input.txt");
     let output = part_1(input);
     println!("{output}");
+
+    let output = part_2(input);
+    println!("{output}");
 }
 
 fn part_1(input: &str) -> usize {
-    let mut lines = input.lines();
-    let directions = parse_directions(lines.next().unwrap());
-    lines.next(); // skip the empty line
-
-    let mut mappings = HashMap::new();
-    while let Some(line) = lines.next() {
-        let (key, left, right) = parse_mapping(line);
-        mappings.insert(key, (left, right));
-    }
-
-    let mut steps = 0;
-
-    let mut curr = "AAA";
-    for dir in directions {
-        steps += 1;
-        let (l, r) = mappings.get(curr).unwrap();
-        curr = dir.choose(l, r);
-        if curr == "ZZZ" {
-            break;
-        }
-    }
-
-    steps
+    let input = Input::parse(input);
+    input.calc_steps("AAA", |k| k == "ZZZ")
 }
 
-fn parse_directions(line: &str) -> impl Iterator<Item = Direction> + '_ {
+fn part_2(input: &str) -> usize {
+    let input = Input::parse(input);
+
+    let mut key_steps = Vec::new();
+    for key in input.start.iter() {
+        let steps = input.calc_steps(key, |k| k.ends_with('Z'));
+        key_steps.push(steps);
+    }
+
+    key_steps
+        .into_iter()
+        .reduce(|a, b| num::integer::lcm(a, b))
+        .unwrap()
+}
+
+fn parse_directions(line: &str) -> Vec<Direction> {
     line.chars()
         .take_while(|&c| c == 'L' || c == 'R')
         .map(|c| {
@@ -42,7 +39,7 @@ fn parse_directions(line: &str) -> impl Iterator<Item = Direction> + '_ {
                 Direction::Right
             }
         })
-        .cycle()
+        .collect()
 }
 
 fn parse_mapping(line: &str) -> (&str, &str, &str) {
@@ -53,6 +50,55 @@ fn parse_mapping(line: &str) -> (&str, &str, &str) {
     let left = pair.next().unwrap();
     let right = pair.next().unwrap();
     (key, left, right)
+}
+
+struct Input<'a> {
+    directions: Vec<Direction>,
+    left: HashMap<&'a str, &'a str>,
+    right: HashMap<&'a str, &'a str>,
+    start: Vec<&'a str>,
+}
+
+impl<'a> Input<'a> {
+    pub fn parse(input: &'a str) -> Self {
+        let mut lines = input.lines();
+        let directions = parse_directions(lines.next().unwrap());
+        lines.next(); // skip the empty line
+
+        let mut start = Vec::new();
+        let mut left_map = HashMap::new();
+        let mut right_map = HashMap::new();
+
+        while let Some(line) = lines.next() {
+            let (key, left, right) = parse_mapping(line);
+            left_map.insert(key, left);
+            right_map.insert(key, right);
+            if key.ends_with('A') {
+                start.push(key);
+            }
+        }
+
+        Self {
+            directions,
+            left: left_map,
+            right: right_map,
+            start,
+        }
+    }
+
+    fn calc_steps(&self, start: &str, stop: impl Fn(&str) -> bool) -> usize {
+        let mut steps = 0;
+        let mut curr = start;
+        for direction in self.directions.iter().cycle() {
+            steps += 1;
+            let map = direction.choose(&self.left, &self.right);
+            curr = map.get(curr).unwrap();
+            if stop(curr) {
+                break;
+            }
+        }
+        steps
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -97,6 +143,22 @@ AAA = (BBB, BBB)
 BBB = (AAA, ZZZ)
 ZZZ = (ZZZ, ZZZ)"#;
         let steps = part_1(input);
+        assert_eq!(steps, 6);
+    }
+
+    #[test]
+    fn part_2_basic() {
+        let input = r#"LR
+
+11A = (11B, XXX)
+11B = (XXX, 11Z)
+11Z = (11B, XXX)
+22A = (22B, XXX)
+22B = (22C, 22C)
+22C = (22Z, 22Z)
+22Z = (22B, 22B)
+XXX = (XXX, XXX)"#;
+        let steps = part_2(input);
         assert_eq!(steps, 6);
     }
 }
