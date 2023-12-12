@@ -9,16 +9,20 @@ fn part_1(input: &str) -> usize {
     let time = parse_line(lines.next().unwrap(), "Time:");
     let distance = parse_line(lines.next().unwrap(), "Distance:");
 
-    let mut total = 1.0;
+    let mut total = 1;
     for (&t, &s) in time.iter().zip(&distance) {
-        let term = (t.pow(2) as f32 - 4.0 * s as f32).sqrt();
-        let upper = (t as f32 + term) / 2.0;
-        let lower = (t as f32 - term) / 2.0;
-        let upper = (upper - 1.0).ceil();
-        let lower = (lower + 1.0).floor();
-        total *= upper - lower + 1.0;
+        total *= win_combination(t, s);
     }
-    total as usize
+    total
+}
+
+fn win_combination(t: usize, s: usize) -> usize {
+    let term = (t.pow(2) as f32 - 4.0 * s as f32).sqrt();
+    let upper = (t as f32 + term) / 2.0;
+    let lower = (t as f32 - term) / 2.0;
+    let upper = (upper - 1.0).ceil();
+    let lower = (lower + 1.0).floor();
+    (upper - lower + 1.0) as usize
 }
 
 fn parse_line(line: &str, prefix: &str) -> Vec<usize> {
