@@ -1,74 +1,154 @@
 fn main() {
     let input = include_str!("../input.txt");
-    let location = day_1(input);
-    println!("Lowest Location: {}", location);
+    let output = day_1(input);
+    println!("output: {}", output);
+
+    let output = day_2(input);
+    println!("output: {}", output);
 }
 
 fn day_1(input: &str) -> usize {
     let mut lines = input.lines();
-    let seeds = parse_seeds(lines.next().unwrap());
-    lines.next(); // skip empty line
+    let seeds = get_seeds(lines.next().unwrap());
 
-    let mut categories = Vec::new();
-
-    while let Some(_) = lines.next().and_then(parse_map_category) {
-        let mut mapping = Vec::new();
-        while let Some(line) = lines.next() {
-            if line.is_empty() {
-                break;
-            }
-            let (dst, src, count) = parse_map_line(line);
-            mapping.push((dst..dst + count, src..src + count));
+    let mut maps = Vec::new();
+    while let Some(line) = lines.next() {
+        if line.is_empty() {
+            continue;
         }
-        categories.push(mapping);
+        if line.ends_with(":") {
+            maps.push(Vec::new());
+        } else {
+            let map = maps.last_mut().unwrap();
+            map.push(read_map_line(line));
+        }
     }
 
-    let mut location = usize::MAX;
-
+    let mut min_location = usize::MAX;
     for seed in seeds {
         let mut current = seed;
-        for mapping in &categories {
-            for (dst_range, src_range) in mapping {
-                if src_range.contains(&current) {
-                    current = dst_range.start + (current - src_range.start);
+        for map in maps.iter() {
+            for (target, src, count) in map {
+                if current >= *src && current < *src + *count {
+                    current = target + current - src;
                     break;
                 }
             }
         }
-        if current < location {
-            location = current;
+        if current < min_location {
+            min_location = current;
         }
     }
 
-    location
+    min_location
 }
 
-fn parse_map_line(line: &str) -> (usize, usize, usize) {
-    let mut split = line.split(" ");
-    let a = split.next().unwrap().parse().unwrap();
-    let b = split.next().unwrap().parse().unwrap();
-    let c = split.next().unwrap().parse().unwrap();
+fn day_2(input: &str) -> usize {
+    let mut lines = input.lines();
+    let seeds = get_seeds(lines.next().unwrap());
+
+    let mut maps = Vec::new();
+    while let Some(line) = lines.next() {
+        if line.is_empty() {
+            continue;
+        }
+        if line.ends_with(":") {
+            maps.push(Vec::new());
+        } else {
+            let map = maps.last_mut().unwrap();
+            map.push(read_map_line(line));
+        }
+    }
+
+    let mut min_location = usize::MAX;
+    for i in 0..seeds.len() / 2 {
+        let seed = seeds[2 * i];
+        let seed_count = seeds[2 * i + 1];
+
+        let mut current = vec![Range::new(seed, seed + seed_count)];
+        for map in maps.iter() {
+            let mut pending = Vec::new();
+            let mut done = Vec::new();
+            for &(target, src, count) in map {
+                let target = Range::new(target, target + count);
+                let src = Range::new(src, src + count);
+                for current in current.drain(..) {
+                    if let Some(intersection) = src.intersection(current) {
+                        done.push(intersection.translate(src, target));
+                        if intersection.start > current.start {
+                            pending.push(Range::new(current.start, intersection.start));
+                        }
+                        if intersection.end < current.end {
+                            pending.push(Range::new(intersection.end, current.end))
+                        }
+                    } else {
+                        pending.push(current);
+                    }
+                }
+                current.extend(pending.drain(..));
+            }
+            current.extend(done.drain(..));
+        }
+
+        for r in current {
+            if r.start < min_location {
+                min_location = r.start;
+            }
+        }
+    }
+
+    min_location
+}
+
+#[derive(Clone, Copy)]
+struct Range {
+    start: usize,
+    end: usize,
+}
+
+impl Range {
+    fn new(start: usize, end: usize) -> Self {
+        Self { start, end }
+    }
+
+    fn intersection(self, other: Range) -> Option<Range> {
+        let l = self.start.max(other.start);
+        let r = self.end.min(other.end);
+        if l < r {
+            Some(Self::new(l, r))
+        } else {
+            None
+        }
+    }
+
+    fn translate(self, src: Self, target: Self) -> Self {
+        let l = self.start + target.start - src.start;
+        let r = self.end + target.start - src.start;
+        Self::new(l, r)
+    }
+}
+
+fn get_seeds(line: &str) -> Vec<usize> {
+    line.strip_prefix("seeds: ")
+        .unwrap()
+        .split_whitespace()
+        .map(|x| x.parse::<usize>().unwrap())
+        .collect()
+}
+
+fn read_map_line(line: &str) -> (usize, usize, usize) {
+    let mut line = line.split_whitespace();
+    let a = line.next().unwrap().parse().unwrap();
+    let b = line.next().unwrap().parse().unwrap();
+    let c = line.next().unwrap().parse().unwrap();
     (a, b, c)
-}
-
-fn parse_map_category(line: &str) -> Option<&str> {
-    line.strip_suffix(" map:")
-}
-
-fn parse_seeds(line: &str) -> Vec<usize> {
-    let line = line.strip_prefix("seeds: ").unwrap();
-    line.split(" ").map(|s| s.parse().unwrap()).collect()
 }
 
 #[cfg(test)]
 mod tests {
-    use std::ops::Range;
-
     use super::*;
 
-    #[test]
-    fn basic() {
-        let input = r#"seeds: 79 14 55 13
+    const TEST_INPUT: &str = r#"seeds: 79 14 55 13
 
 seed-to-soil map:
 50 98 2
@@ -101,13 +181,16 @@ temperature-to-humidity map:
 humidity-to-location map:
 60 56 37
 56 93 4"#;
-        let location = day_1(input);
-        assert_eq!(location, 35);
+
+    #[test]
+    fn day1_basic() {
+        let output = day_1(TEST_INPUT);
+        assert_eq!(output, 35);
     }
 
     #[test]
-    fn foo() {
-        let a: Range<usize> = 11..53;
-        assert!(!a.contains(&53));
+    fn day2_basic() {
+        let output = day_2(TEST_INPUT);
+        assert_eq!(output, 46);
     }
 }
