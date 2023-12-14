@@ -1,10 +1,10 @@
 fn main() {
     let input = include_str!("../input.txt");
     let output = part_1(input);
-    println!("Output: {output}");
+    println!("Output: {output}"); // 2043183816
 
     let output = part_2(input);
-    println!("Output: {output}");
+    println!("Output: {output}"); // 1118
 }
 
 fn part_1(input: &str) -> isize {
@@ -19,7 +19,8 @@ fn part_1(input: &str) -> isize {
         })
         .unwrap();
 
-    predict_next(combined)
+    let pos = combined.len() as isize;
+    predict(combined, pos)
 }
 
 fn part_2(input: &str) -> isize {
@@ -34,61 +35,21 @@ fn part_2(input: &str) -> isize {
         })
         .unwrap();
 
-    predict_prev(combined)
+    predict(combined, -1)
 }
 
-fn predict_next(list: Vec<isize>) -> isize {
-    let mut stack = vec![list];
-
-    loop {
-        let mut new = Vec::new();
-        let last = stack.last().unwrap();
-        let mut zeros = 0;
-        for i in 0..last.len() - 1 {
-            let d = last[i + 1] - last[i];
-            new.push(d);
-            if d == 0 {
-                zeros += 1;
+fn predict(list: Vec<isize>, x: isize) -> isize {
+    let mut sum = 0_f64;
+    for (i, v) in list.iter().enumerate() {
+        let mut product = 1_f64;
+        for j in 0..list.len() {
+            if j != i {
+                product *= (x as f64 - j as f64) / (i as f64 - j as f64);
             }
         }
-        if zeros == new.len() {
-            break;
-        }
-        stack.push(new);
+        sum += *v as f64 * product;
     }
-
-    let mut curr = 0;
-    while let Some(mut list) = stack.pop() {
-        curr += list.pop().unwrap();
-    }
-    curr
-}
-
-fn predict_prev(list: Vec<isize>) -> isize {
-    let mut stack = vec![list];
-
-    loop {
-        let mut new = Vec::new();
-        let last = stack.last().unwrap();
-        let mut zeros = 0;
-        for i in 0..last.len() - 1 {
-            let d = last[i + 1] - last[i];
-            new.push(d);
-            if d == 0 {
-                zeros += 1;
-            }
-        }
-        if zeros == new.len() {
-            break;
-        }
-        stack.push(new);
-    }
-
-    let mut curr = 0;
-    while let Some(list) = stack.pop() {
-        curr = list[0] - curr;
-    }
-    curr
+    sum.round() as isize
 }
 
 fn parse_list(line: &str) -> Vec<isize> {
@@ -117,5 +78,12 @@ mod tests {
 10 13 16 21 30 45"#;
         let output = part_2(input);
         assert_eq!(output, 2)
+    }
+
+    #[test]
+    fn part1_one_line() {
+        let input = r#"0 3 6 9 12 15"#;
+        let output = part_1(input);
+        assert_eq!(output, 18)
     }
 }
