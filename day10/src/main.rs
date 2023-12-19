@@ -7,114 +7,74 @@ fn main() {
 fn part_1(input: &str) -> usize {
     let lines: Vec<_> = input.lines().map(|s| s.as_bytes()).collect();
 
-    let mut i = 0;
-    let mut j = 0;
-    for (line_index, line) in lines.iter().enumerate() {
+    let mut start = (0, 0);
+    'outer: for (line_index, line) in lines.iter().enumerate() {
         for (char_index, c) in line.iter().enumerate() {
             if *c == b'S' {
-                i = line_index;
-                j = char_index;
-                break;
+                start = (line_index, char_index);
+                break 'outer;
             }
         }
     }
 
-    let mut dir = Direction::Left;
+    let (mut i, mut j) = start;
 
-    if i > 0 && lines[i - 1][j] == b'|' {
-        dir = Direction::Up;
-        i -= 1;
-    } else if i > 0 && j > 0 && lines[i - 1][j] == b'7' {
-        dir = Direction::Up;
-        i -= 1;
-    } else if i > 0 && j < lines[0].len() - 1 && lines[i - 1][j] == b'F' {
-        dir = Direction::Up;
-        i -= 1;
-    } else if j > 0 && lines[i][j - 1] == b'-' {
-        dir = Direction::Left;
-        j -= 1;
-    } else if j > 0 && i > 0 && lines[i][j - 1] == b'L' {
-        dir = Direction::Left;
-        j -= 1;
-    } else if j > 0 && i < lines.len() - 1 && lines[i][j - 1] == b'F' {
-        dir = Direction::Left;
-        j -= 1;
-    } else if j < lines[0].len() - 1 && lines[i][j + 1] == b'-' {
-        dir = Direction::Right;
-        j += 1;
-    } else if j < lines[0].len() - 1 && i > 0 && lines[i][j + 1] == b'J' {
-        dir = Direction::Right;
-        j += 1;
-    } else if j < lines[0].len() - 1 && i < lines.len() - 1 && lines[i][j + 1] == b'7' {
-        dir = Direction::Right;
-        j += 1;
-    } else if i < lines.len() - 1 && lines[i + 1][j] == b'|' {
-        dir = Direction::Down;
-        i += 1;
-    } else if i < lines.len() - 1 && j > 0 && lines[i + 1][j] == b'J' {
-        dir = Direction::Down;
-        i += 1;
-    } else if i < lines.len() - 1 && j < lines[0].len() - 1 && lines[i + 1][j] == b'L' {
-        dir = Direction::Down;
-        i += 1;
-    }
-    let mut steps = 1;
+    let mut dir = if i > 0 && b"|7F".contains(&lines[i - 1][j]) {
+        Direction::Up
+    } else if j > 0 && b"-LF".contains(&lines[i][j - 1]) {
+        Direction::Left
+    } else if j < lines[0].len() - 1 && b"-J7".contains(&lines[i][j + 1]) {
+        Direction::Right
+    } else if i < lines.len() - 1 && b"|JL".contains(&lines[i + 1][j]) {
+        Direction::Down
+    } else {
+        unreachable!()
+    };
+    let mut steps = 0;
     loop {
+        match dir {
+            Direction::Left => j -= 1,
+            Direction::Right => j += 1,
+            Direction::Up => i -= 1,
+            Direction::Down => i += 1,
+        }
+
         match lines[i][j] {
-            b'S' => break,
-            b'|' => {
-                if dir == Direction::Up {
-                    i -= 1;
-                } else {
-                    i += 1;
-                }
-            }
-            b'-' => {
-                if dir == Direction::Left {
-                    j -= 1;
-                } else {
-                    j += 1;
-                }
-            }
             b'F' => {
-                if dir == Direction::Left {
-                    i += 1;
-                    dir = Direction::Down;
+                dir = if let Direction::Up = dir {
+                    Direction::Right
                 } else {
-                    j += 1;
-                    dir = Direction::Right;
-                }
+                    Direction::Down
+                };
             }
             b'J' => {
-                if dir == Direction::Down {
-                    j -= 1;
-                    dir = Direction::Left;
+                dir = if let Direction::Down = dir {
+                    Direction::Left
                 } else {
-                    i -= 1;
-                    dir = Direction::Up;
-                }
+                    Direction::Up
+                };
             }
             b'7' => {
-                if dir == Direction::Right {
-                    i += 1;
-                    dir = Direction::Down;
+                dir = if let Direction::Right = dir {
+                    Direction::Down
                 } else {
-                    j -= 1;
-                    dir = Direction::Left;
-                }
+                    Direction::Left
+                };
             }
             b'L' => {
-                if dir == Direction::Down {
-                    j += 1;
-                    dir = Direction::Right;
+                dir = if let Direction::Down = dir {
+                    Direction::Right
                 } else {
-                    i -= 1;
-                    dir = Direction::Up;
-                }
+                    Direction::Up
+                };
             }
-            _ => unreachable!(),
+            _ => (),
         }
+
         steps += 1;
+        if (i, j) == start {
+            break;
+        }
     }
 
     steps / 2
