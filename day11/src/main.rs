@@ -1,10 +1,13 @@
 fn main() {
     let input = include_str!("../input.txt");
-    let output = part_1(input);
+    let output = solve(input, 2);
+    println!("{output}");
+
+    let output = solve(input, 1_000_000);
     println!("{output}");
 }
 
-fn part_1(input: &str) -> usize {
+fn solve(input: &str, expansion_factor: usize) -> usize {
     let grid: Vec<_> = input.lines().map(|it| it.as_bytes()).collect();
 
     let mut empty_rows = Vec::new();
@@ -40,12 +43,12 @@ fn part_1(input: &str) -> usize {
             let mut distance = i1.abs_diff(i2) + j1.abs_diff(j2);
             for k in empty_rows.iter() {
                 if (i1..i2).contains(k) || (i2..i1).contains(k) {
-                    distance += 1;
+                    distance += expansion_factor - 1;
                 }
             }
             for k in empty_cols.iter() {
                 if (j1..j2).contains(k) || (j2..j1).contains(k) {
-                    distance += 1;
+                    distance += expansion_factor - 1;
                 }
             }
             sum += distance;
@@ -71,7 +74,13 @@ mod tests {
 ..........
 .......#..
 #...#....."#;
-        let output = part_1(INPUT);
+        let output = solve(INPUT, 2);
         assert_eq!(output, 374);
+
+        let output = solve(INPUT, 10);
+        assert_eq!(output, 1030);
+
+        let output = solve(INPUT, 100);
+        assert_eq!(output, 8410);
     }
 }
