@@ -33,7 +33,7 @@ fn part_2(input: &str) -> usize {
 }
 
 fn get_combinations(pattern: &[u8], sizes: &[usize]) -> usize {
-    let mut cache = vec![vec![-1; sizes.len()]; pattern.len()];
+    let mut cache = vec![vec![-1; pattern.len()]; sizes.len()];
     get_combinations_cached(pattern, sizes, 0, 0, &mut cache)
 }
 
@@ -44,7 +44,7 @@ fn get_combinations_cached(
     size_index: usize,
     cache: &mut Vec<Vec<i64>>,
 ) -> usize {
-    match cache.get(pat_index).and_then(|it| it.get(size_index)) {
+    match cache.get(size_index).and_then(|it| it.get(pat_index)) {
         Some(&n) if n >= 0 => return n as usize,
         _ => (),
     }
@@ -77,7 +77,7 @@ fn get_combinations_cached(
         }
     }
 
-    cache[pat_index][size_index] = combinations as i64;
+    cache[size_index][pat_index] = combinations as i64;
     combinations
 }
 
