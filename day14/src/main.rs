@@ -50,18 +50,11 @@ fn part_2(input: &str) -> usize {
 }
 
 fn check_load(board: &Vec<Vec<u8>>) -> usize {
-    let mut total = 0;
-    for j in 0..board[0].len() {
-        let mut load = 0;
-        for i in 0..board.len() {
-            if board[i][j] == b'O' {
-                load += board.len() - i;
-            }
-        }
-        total += load;
-    }
-
-    total
+    board
+        .iter()
+        .enumerate()
+        .map(|(i, row)| (board.len() - i) * row.iter().filter(|&&c| c == b'O').count())
+        .sum()
 }
 
 fn spin(board: &mut Vec<Vec<u8>>) {
