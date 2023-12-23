@@ -9,8 +9,8 @@ fn main() {
 
 fn part_1(input: &str) -> usize {
     let mut board: Vec<_> = input.lines().map(|x| x.as_bytes().to_vec()).collect();
-    north_tilt(&mut board);
-    get_load(&board)
+    tilt_north(&mut board);
+    check_load(&board)
 }
 
 fn part_2(input: &str) -> usize {
@@ -46,10 +46,10 @@ fn part_2(input: &str) -> usize {
         spin(board_2);
     }
 
-    get_load(board_2)
+    check_load(board_2)
 }
 
-fn get_load(board: &Vec<Vec<u8>>) -> usize {
+fn check_load(board: &Vec<Vec<u8>>) -> usize {
     let mut total = 0;
     for j in 0..board[0].len() {
         let mut load = 0;
@@ -65,13 +65,13 @@ fn get_load(board: &Vec<Vec<u8>>) -> usize {
 }
 
 fn spin(board: &mut Vec<Vec<u8>>) {
-    north_tilt(board);
-    east_tilt(board);
-    south_tilt(board);
-    west_tilt(board);
+    tilt_north(board);
+    tilt_east(board);
+    tilt_south(board);
+    tilt_west(board);
 }
 
-fn north_tilt(board: &mut Vec<Vec<u8>>) {
+fn tilt_north(board: &mut Vec<Vec<u8>>) {
     for j in 0..board[0].len() {
         let mut k = 0;
         for i in 0..board.len() {
@@ -88,7 +88,7 @@ fn north_tilt(board: &mut Vec<Vec<u8>>) {
     }
 }
 
-fn east_tilt(board: &mut Vec<Vec<u8>>) {
+fn tilt_east(board: &mut Vec<Vec<u8>>) {
     for i in 0..board.len() {
         let mut k = 0;
         for j in 0..board[0].len() {
@@ -105,7 +105,7 @@ fn east_tilt(board: &mut Vec<Vec<u8>>) {
     }
 }
 
-fn south_tilt(board: &mut Vec<Vec<u8>>) {
+fn tilt_south(board: &mut Vec<Vec<u8>>) {
     for j in 0..board[0].len() {
         let mut k = board.len() - 1;
         for i in (0..board.len()).rev() {
@@ -122,7 +122,7 @@ fn south_tilt(board: &mut Vec<Vec<u8>>) {
     }
 }
 
-fn west_tilt(board: &mut Vec<Vec<u8>>) {
+fn tilt_west(board: &mut Vec<Vec<u8>>) {
     for i in 0..board.len() {
         let mut k = board[0].len() - 1;
         for j in (0..board[0].len()).rev() {
@@ -210,7 +210,7 @@ O..#.OO...
 #....###..
 #....#....";
         let mut x = to_vec(input);
-        north_tilt(&mut x);
+        tilt_north(&mut x);
         let x = to_string(x);
         assert_eq!(x, output);
     }
@@ -239,7 +239,7 @@ O.........
 #....###..
 #....#....";
         let mut x = to_vec(input);
-        east_tilt(&mut x);
+        tilt_east(&mut x);
         let x = to_string(x);
         assert_eq!(x, output);
     }
@@ -268,7 +268,7 @@ OO....OO..
 #O...###..
 #O..O#....";
         let mut x = to_vec(input);
-        south_tilt(&mut x);
+        tilt_south(&mut x);
         let x = to_string(x);
         assert_eq!(x, output);
     }
@@ -297,7 +297,7 @@ OO....OO..
 #...O###..
 #..OO#....";
         let mut x = to_vec(input);
-        west_tilt(&mut x);
+        tilt_west(&mut x);
         let x = to_string(x);
         assert_eq!(x, output);
     }
