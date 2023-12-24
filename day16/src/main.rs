@@ -4,16 +4,36 @@ fn main() {
     let input = include_str!("../input.txt");
     let output = part_1(input);
     println!("{output}");
+
+    let output = part_2(input);
+    println!("{output}");
 }
 
 fn part_1(input: &str) -> usize {
     let grid: Vec<_> = input.lines().map(|it| it.as_bytes()).collect();
+    solve(&grid, (0, 0, Direction::Right))
+}
 
+fn part_2(input: &str) -> usize {
+    let grid: Vec<_> = input.lines().map(|it| it.as_bytes()).collect();
+    let mut max = 0;
+    for i in 0..grid.len() {
+        max = solve(&grid, (i, 0, Direction::Right)).max(max);
+        max = solve(&grid, (i, grid[0].len() - 1, Direction::Left)).max(max);
+    }
+    for j in 0..grid[0].len() {
+        max = solve(&grid, (0, j, Direction::Down)).max(max);
+        max = solve(&grid, (0, grid.len() - 1, Direction::Up)).max(max);
+    }
+    max
+}
+
+fn solve(grid: &[&[u8]], start: (usize, usize, Direction)) -> usize {
     let mut done = HashSet::<(usize, usize)>::new();
     let mut done_with_direction = HashSet::<(usize, usize, Direction)>::new();
 
     let mut queue = VecDeque::new();
-    queue.push_back((0, 0, Direction::Right));
+    queue.push_back(start);
 
     while let Some((i, j, direction)) = queue.pop_front() {
         if !done_with_direction.insert((i, j, direction)) {
@@ -21,7 +41,7 @@ fn part_1(input: &str) -> usize {
         }
 
         done.insert((i, j));
-        if let Some((i, j)) = move_in_direction(i, j, direction, &grid) {
+        if let Some((i, j)) = move_in_direction(i, j, direction, grid) {
             let tile = grid[i][j];
             match tile {
                 b'.' => queue.push_back((i, j, direction)),
@@ -129,5 +149,21 @@ mod tests {
 ..//.|....";
         let output = part_1(input);
         assert_eq!(output, 46);
+    }
+
+    #[test]
+    fn part_2_test() {
+        let input = r".|...\....
+|.-.\.....
+.....|-...
+........|.
+..........
+.........\
+..../.\\..
+.-.-/..|..
+.|....-|.\
+..//.|....";
+        let output = part_2(input);
+        assert_eq!(output, 51);
     }
 }
