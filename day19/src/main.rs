@@ -35,7 +35,7 @@ fn part_1(input: &str) -> usize {
 
     for p in parts {
         if is_part_accepted(&p, &workflows) {
-            for v in p.values() {
+            for v in p {
                 total += v;
             }
         }
@@ -57,21 +57,17 @@ fn part_2(input: &str) -> usize {
         workflows.insert(name, workflow);
     }
 
-    let mut p = HashMap::new();
-    p.insert("m", 1..4001);
-    p.insert("x", 1..4001);
-    p.insert("a", 1..4001);
-    p.insert("s", 1..4001);
+    let all_part_ranges = [1..4001, 1..4001, 1..4001, 1..4001];
 
     let mut total = 0;
-    let mut pending = VecDeque::<(&str, Part<'_>)>::new();
-    pending.push_back(("in", p));
+    let mut pending = VecDeque::<(&str, Part)>::new();
+    pending.push_back(("in", all_part_ranges));
 
     while let Some((dest, part)) = pending.pop_front() {
         if dest == ACCEPTED {
             let mut combinations = 1;
-            for v in part.values() {
-                combinations *= v.end - v.start;
+            for category in part {
+                combinations *= category.end - category.start;
             }
             total += combinations;
             continue;
@@ -90,8 +86,8 @@ fn part_2(input: &str) -> usize {
 
 fn check_workflow<'a>(
     workflow: &Workflow<'a>,
-    mut part: Part<'a>,
-    pending: &mut VecDeque<(&'a str, Part<'a>)>,
+    mut part: Part,
+    pending: &mut VecDeque<(&'a str, Part)>,
 ) {
     for rule in workflow.rules.iter() {
         let value = part[rule.key].clone();
@@ -103,9 +99,9 @@ fn check_workflow<'a>(
                         return;
                     } else {
                         let mut new_part = part.clone();
-                        new_part.insert(rule.key, value.start..rule.value);
+                        new_part[rule.key] = value.start..rule.value;
                         pending.push_back((rule.destination, new_part));
-                        part.insert(rule.key, rule.value..value.end);
+                        part[rule.key] = rule.value..value.end;
                     }
                 }
             }
@@ -116,9 +112,9 @@ fn check_workflow<'a>(
                         return;
                     } else {
                         let mut new_part = part.clone();
-                        new_part.insert(rule.key, rule.value + 1..value.end);
+                        new_part[rule.key] = rule.value + 1..value.end;
                         pending.push_back((rule.destination, new_part));
-                        part.insert(rule.key, value.start..rule.value + 1);
+                        part[rule.key] = value.start..rule.value + 1;
                     }
                 }
             }
@@ -128,7 +124,7 @@ fn check_workflow<'a>(
     pending.push_back((workflow.fallback, part));
 }
 
-fn is_part_accepted(part: &HashMap<&str, usize>, workflows: &HashMap<&str, Workflow>) -> bool {
+fn is_part_accepted(part: &[usize; 4], workflows: &HashMap<&str, Workflow>) -> bool {
     let mut current = "in";
     loop {
         let workflow = &workflows[current];
@@ -154,14 +150,14 @@ fn parse_workflow(input: &str) -> (&str, Workflow) {
             if let Some((lhs, rhs)) = expr.split_once('>') {
                 workflow.rules.push(WorkflowRule {
                     destination: dest,
-                    key: lhs,
+                    key: key_to_index(lhs),
                     op: ComparisonOp::Greater,
                     value: rhs.parse().unwrap(),
                 });
             } else if let Some((lhs, rhs)) = expr.split_once('<') {
                 workflow.rules.push(WorkflowRule {
                     destination: dest,
-                    key: lhs,
+                    key: key_to_index(lhs),
                     op: ComparisonOp::Less,
                     value: rhs.parse().unwrap(),
                 });
@@ -176,18 +172,33 @@ fn parse_workflow(input: &str) -> (&str, Workflow) {
     (name, workflow)
 }
 
-fn parse_part(input: &str) -> HashMap<&str, usize> {
-    input[1..input.len() - 1]
+fn parse_part(input: &str) -> [usize; 4] {
+    let mut out = [0; 4];
+
+    for (l, r) in input[1..input.len() - 1]
         .split(',')
         .map(|it| it.split_once('=').unwrap())
-        .map(|(l, r)| (l, r.parse().unwrap()))
-        .collect()
+    {
+        let i = key_to_index(l);
+        out[i] = r.parse().unwrap();
+    }
+    out
+}
+
+fn key_to_index(key: &str) -> usize {
+    match key {
+        "x" => 0,
+        "m" => 1,
+        "a" => 2,
+        "s" => 3,
+        _ => unreachable!(),
+    }
 }
 
 const ACCEPTED: &str = "A";
 const REJECTED: &str = "R";
 
-type Part<'a> = HashMap<&'a str, Range<usize>>;
+type Part = [Range<usize>; 4];
 
 struct Workflow<'a> {
     rules: Vec<WorkflowRule<'a>>,
@@ -195,7 +206,7 @@ struct Workflow<'a> {
 }
 
 impl Workflow<'_> {
-    fn get_destination(&self, part: &HashMap<&str, usize>) -> &str {
+    fn get_destination(&self, part: &[usize; 4]) -> &str {
         for rule in self.rules.iter() {
             let value = part[rule.key];
             let is_match = match rule.op {
@@ -212,7 +223,7 @@ impl Workflow<'_> {
 }
 
 struct WorkflowRule<'a> {
-    key: &'a str,
+    key: usize,
     op: ComparisonOp,
     value: usize,
     destination: &'a str,
